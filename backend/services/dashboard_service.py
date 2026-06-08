@@ -13,6 +13,20 @@ from dependencies.repositories import (
 from services.user_service import UserService
 from services.analysis_service import AnalysisService
 from services.improvement_service import ImprovementService
+from services.dashboard_service import DashboardService
+
+
+def get_user_service(
+
+    user_repo: UserRepository = Depends(
+        get_user_repository
+    )
+
+):
+
+    return UserService(
+        user_repo=user_repo
+    )
 
 
 def get_analysis_service(
@@ -56,14 +70,19 @@ def get_improvement_service(
     )
 
 
-def get_user_service(
+def get_dashboard_service(
 
     user_repo: UserRepository = Depends(
         get_user_repository
+    ),
+
+    analysis_repo: AnalysisRepository = Depends(
+        get_analysis_repository
     )
 
 ):
 
-    return UserService(
-        user_repo=user_repo
+    return DashboardService(
+        user_repo=user_repo,
+        analysis_repo=analysis_repo
     )

@@ -1,0 +1,46 @@
+services:
+
+  db:
+    image: postgres:17
+
+    container_name: resume_postgres
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgre123
+      POSTGRES_DB: resume_saas
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+
+  redis:
+    image: redis:7
+
+    container_name: resume_redis
+
+    ports:
+      - "6379:6379"
+
+
+  api:
+    build: ./backend
+
+    container_name: resume_api
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      - db
+      - redis
+
+    env_file:
+      - .env
+
+
+volumes:
+  postgres_data:

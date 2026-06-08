@@ -6,6 +6,9 @@ from routers.auth import router as auth_router
 from routers.improve_resume import router as improve_resume_router
 
 
+from services.redis_service import test_redis
+
+
 from database.db import engine
 from database.models import Base
 
@@ -50,4 +53,11 @@ def home():
         "message": "AI Resume SaaS Running",
         "version": "1.0.0",
         "status": "active"
+    }
+    
+@app.get("/redis-test")
+def redis_test():
+
+    return {
+        "redis_value": test_redis()
     }

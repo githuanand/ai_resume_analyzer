@@ -4,16 +4,15 @@ from fastapi import HTTPException
 
 from pydantic import BaseModel
 
-from sqlalchemy.orm import Session
-
-from database.db import get_db
-
-from repositories.user_repository import UserRepository
-from repositories.analysis_repository import AnalysisRepository
-from repositories.improvement_repository import ImprovementRepository
-
 from services.jwt_service import get_current_user
-from services.resume_improvement_service import improve_resume
+
+from services.improvement_service import (
+    ImprovementService
+)
+
+from dependencies.services import (
+    get_improvement_service
+)
 
 
 router = APIRouter()
@@ -25,113 +24,105 @@ class ImproveResumeRequest(BaseModel):
 
 @router.post("/improve-resume")
 def improve_resume_endpoint(
+
     request: ImproveResumeRequest,
-    current_user: str = Depends(get_current_user),
-    db: Session = Depends(get_db)
+
+    current_user: str = Depends(
+        get_current_user
+    ),
+
+    improvement_service: ImprovementService = Depends(
+        get_improvement_service
+    )
+
 ):
 
-    user_repo = UserRepository(db)
-    analysis_repo = AnalysisRepository(db)
-    improvement_repo = ImprovementRepository(db)
+    try:
 
-    user = user_repo.get_by_email(
-        current_user
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
+        result = (
+            improvement_service.improve_resume(
+                user_email=current_user,
+                analysis_id=request.analysis_id
+            )
         )
 
-    analysis = analysis_repo.get_user_analysis(
-        request.analysis_id,
-        user.id
-    )
+        improvement = result["improvement"]
 
-    if not analysis:
+        analysis = result["analysis"]
+
+        return {
+            "improvement_id": improvement.id,
+            "analysis_id": analysis.id,
+            "filename": analysis.filename,
+            "improved_resume": result["result"]
+        }
+
+    except Exception as e:
+
         raise HTTPException(
             status_code=404,
-            detail="Analysis not found"
+            detail=str(e)
         )
-
-    result = improve_resume(
-        analysis.analysis
-    )
-
-    improvement = improvement_repo.create(
-        user_id=user.id,
-        analysis_id=analysis.id,
-        improved_resume=result
-    )
-
-    return {
-        "improvement_id": improvement.id,
-        "analysis_id": analysis.id,
-        "filename": analysis.filename,
-        "improved_resume": result
-    }
 
 
 @router.get("/my-improvements")
 def get_my_improvements(
-    current_user: str = Depends(get_current_user),
-    db: Session = Depends(get_db)
+
+    current_user: str = Depends(
+        get_current_user
+    ),
+
+    improvement_service: ImprovementService = Depends(
+        get_improvement_service
+    )
+
 ):
 
-    user_repo = UserRepository(db)
-    improvement_repo = ImprovementRepository(db)
+    try:
 
-    user = user_repo.get_by_email(
-        current_user
-    )
+        return (
+            improvement_service
+            .get_user_improvements(
+                current_user
+            )
+        )
 
-    if not user:
+    except Exception as e:
+
         raise HTTPException(
             status_code=404,
-            detail="User not found"
+            detail=str(e)
         )
-
-    improvements = (
-        improvement_repo.get_user_improvements(
-            user.id
-        )
-    )
-
-    return improvements
 
 
 @router.get("/improvement/{improvement_id}")
 def get_improvement(
+
     improvement_id: int,
-    current_user: str = Depends(get_current_user),
-    db: Session = Depends(get_db)
+
+    current_user: str = Depends(
+        get_current_user
+    ),
+
+    improvement_service: ImprovementService = Depends(
+        get_improvement_service
+    )
+
 ):
 
-    user_repo = UserRepository(db)
-    improvement_repo = ImprovementRepository(db)
+    try:
 
-    user = user_repo.get_by_email(
-        current_user
-    )
+        return (
+            improvement_service
+            .get_improvement(
+                user_email=current_user,
+                improvement_id=improvement_id
+            )
+        )
 
-    if not user:
+    except Exception as e:
+
         raise HTTPException(
             status_code=404,
-            detail="User not found"
+            detail=str(e)
         )
-
-    improvement = (
-        improvement_repo.get_by_id(
-            improvement_id,
-            user.id
-        )
-    )
-
-    if not improvement:
-        raise HTTPException(
-            status_code=404,
-            detail="Improvement not found"
-        )
-
-    return improvement
